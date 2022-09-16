@@ -29,6 +29,8 @@ source $_SCRIPTDIR/common-files/termux_download.sh
 : ${_MAKE_PROCESSES:=$(nproc)}
 : ${GCC_VERSION:=11.3.0}
 : ${GCC_SHA256:=98438e6cc7294298b474cf0da7655d9a8c8b796421bb0210531c294a950374ed}
+: ${BINUTILS_VERSION:=2.39}
+: ${BINUTILS_SHA256:=d12ea6f239f1ffe3533ea11ad6e224ffcb89eb5d01bbea589e9158780fa11f10}
 
 export TOOLCHAIN_ARCH
 
@@ -59,31 +61,45 @@ sudo apt install -y libgmp-dev libmpfr-dev libmpc-dev zlib1g-dev libisl-dev libt
 pushd $_TMP_DIR
 
 # Download source
-SRC_URL=https://ftp.gnu.org/gnu/gcc/gcc-${GCC_VERSION}/gcc-${GCC_VERSION}.tar.gz
-SRC_FILE=$_CACHE_DIR/gcc-${GCC_VERSION}.tar.gz
-SRC_DIR=$_TMP_DIR/gcc-${GCC_VERSION}
-termux_download $SRC_URL $SRC_FILE $GCC_SHA256
+GCC_SRC_URL=https://ftp.gnu.org/gnu/gcc/gcc-${GCC_VERSION}/gcc-${GCC_VERSION}.tar.gz
+GCC_SRC_FILE=$_CACHE_DIR/gcc-${GCC_VERSION}.tar.gz
+GCC_SRC_DIR=$_TMP_DIR/gcc-${GCC_VERSION}
+termux_download $GCC_SRC_URL $GCC_SRC_FILE $GCC_SHA256
+BINUTILS_SRC_URL=https://ftp.gnu.org/gnu/binutils/binutils-${BINUTILS_VERSION}.tar.gz
+BINUTILS_SRC_FILE=$_CACHE_DIR/binutils-${BINUTILS_VERSION}.tar.gz
+BINUTILS_SRC_DIR=$_TMP_DIR/binutils-${BINUTILS_VERSION}
+termux_download $BINUTILS_SRC_URL $BINUTILS_SRC_FILE $BINUTILS_SHA256
 
 # Setup a standalone toolchain
 _setup_standalone_toolchain_ndk_r17c $_TMP_DIR/standalone-toolchain
 cp -R $_TMP_DIR/standalone-toolchain/sysroot/usr/include/$_HOST_PLATFORM/* $_TMP_DIR/standalone-toolchain/sysroot/usr/include/
 
-PATH="$_TMP_DIR/standalone-toolchain/bin:$PATH"
-
 # Extract source
-tar -xf $SRC_FILE -C $_TMP_DIR/
+tar -xf $GCC_SRC_FILE -C $_TMP_DIR/
 pushd $_TMP_DIR
 PATCHES="$(find "$_SCRIPTDIR/patches/" -maxdepth 1 -type f -name *.patch | sort)"
 for f in $PATCHES; do
 	echo "Applying patch: $(basename $f)"
-	patch -d "$SRC_DIR/" -p1 < "$f";
+	patch -d "$GCC_SRC_DIR/" -p1 < "$f";
 done
+tar -xf $BINUTILS_SRC_FILE -C $_TMP_DIR/
 popd
 
-# Build a custom toolchain
+# Copy sysroot
 mkdir -p $_TMP_DIR/newer-toolchain
 cp -R $_TMP_DIR/standalone-toolchain/sysroot $_TMP_DIR/newer-toolchain/
 
+# Build binutils
+mkdir -p binutils-build
+pushd binutils-build
+$BINUTILS_SRC_DIR/configure --target=$_HOST_PLATFORM --prefix=$_TMP_DIR/newer-toolchain --enable-gold
+make -j $_MAKE_PROCESSES
+make -j $_MAKE_PROCESSES install
+popd # binutils-build
+
+export PATH="$_TMP_DIR/newer-toolchain/bin:$PATH"
+
+# Build GCC toolchain
 mkdir -p newer-toolchain-build
 pushd newer-toolchain-build
 
@@ -91,7 +107,7 @@ export CFLAGS="-D__ANDROID_API__=$_API_LEVEL"
 export CPPFLAGS="-D__ANDROID_API__=$_API_LEVEL"
 export CXXFLAGS="-D__ANDROID_API__=$_API_LEVEL"
 
-$SRC_DIR/configure \
+$GCC_SRC_DIR/configure \
         --host=x86_64-linux-gnu  \
         --build=x86_64-linux-gnu \
         --target=$_HOST_PLATFORM \
@@ -102,6 +118,7 @@ $SRC_DIR/configure \
         --with-gnu-as --with-gnu-ld \
         --disable-libstdc__-v3 \
         --disable-tls \
+        --disable-ssp \
         --disable-bootstrap \
         --enable-initfini-array \
         --enable-libatomic-ifuncs=no \
