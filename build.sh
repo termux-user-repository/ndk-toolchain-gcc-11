@@ -41,16 +41,18 @@ mkdir -p $_TMP_DIR
 
 _HOST_PLATFORM="${TOOLCHAIN_ARCH}-linux-android"
 
-_EXTRA_HOST_BUILD=""
+_GCC_EXTRA_HOST_BUILD=""
+_BINUTILS_EXTRA_HOST_BUILD="--enable-gold=default"
 if [ "$TOOLCHAIN_ARCH" = "arm" ]; then
 	_HOST_PLATFORM="${_HOST_PLATFORM}eabi"
-	_EXTRA_HOST_BUILD="--with-arch=armv7-a --with-float=soft --with-fpu=vfp"
+	_GCC_EXTRA_HOST_BUILD="--with-arch=armv7-a --with-float=soft --with-fpu=vfp"
 elif [ "$TOOLCHAIN_ARCH" = "aarch64" ]; then
-	_EXTRA_HOST_BUILD="--enable-fix-cortex-a53-835769 --enable-fix-cortex-a53-843419"
+	_GCC_EXTRA_HOST_BUILD="--enable-fix-cortex-a53-835769 --enable-fix-cortex-a53-843419"
+	_BINUTILS_EXTRA_HOST_BUILD="--enable-gold $_GCC_EXTRA_HOST_BUILD"
 elif [ "$TOOLCHAIN_ARCH" = "i686" ]; then
-	_EXTRA_HOST_BUILD="--with-arch=i686 --with-fpmath=sse "
+	_GCC_EXTRA_HOST_BUILD="--with-arch=i686 --with-fpmath=sse "
 elif [ "$TOOLCHAIN_ARCH" = "x86_64" ]; then
-	_EXTRA_HOST_BUILD="--with-arch=x86-64 --with-fpmath=sse"
+	_GCC_EXTRA_HOST_BUILD="--with-arch=x86-64 --with-fpmath=sse"
 fi
 
 # Install dependencies
@@ -92,7 +94,11 @@ cp -R $_TMP_DIR/standalone-toolchain/sysroot $_TMP_DIR/newer-toolchain/
 # Build binutils
 mkdir -p binutils-build
 pushd binutils-build
-$BINUTILS_SRC_DIR/configure --target=$_HOST_PLATFORM --prefix=$_TMP_DIR/newer-toolchain --enable-gold
+$BINUTILS_SRC_DIR/configure \
+		--target=$_HOST_PLATFORM \
+		--prefix=$_TMP_DIR/newer-toolchain \
+		--with-sysroot=$_TMP_DIR/newer-toolchain/sysroot \
+		$_BINUTILS_EXTRA_HOST_BUILD
 make -j $_MAKE_PROCESSES
 make -j $_MAKE_PROCESSES install-strip
 popd # binutils-build
@@ -132,7 +138,7 @@ $GCC_SRC_DIR/configure \
         --enable-eh-frame-hdr-for-static \
         --enable-graphite=yes --with-isl \
         --disable-multilib \
-        $_EXTRA_HOST_BUILD \
+        $_GCC_EXTRA_HOST_BUILD \
         --with-sysroot=$_TMP_DIR/newer-toolchain/sysroot \
         --with-gxx-include-dir=$_TMP_DIR/newer-toolchain/include/c++/$GCC_VERSION
 
