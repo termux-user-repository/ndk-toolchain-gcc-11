@@ -94,7 +94,7 @@ mkdir -p binutils-build
 pushd binutils-build
 $BINUTILS_SRC_DIR/configure --target=$_HOST_PLATFORM --prefix=$_TMP_DIR/newer-toolchain --enable-gold
 make -j $_MAKE_PROCESSES
-make -j $_MAKE_PROCESSES install
+make -j $_MAKE_PROCESSES install-strip
 popd # binutils-build
 
 export PATH="$_TMP_DIR/newer-toolchain/bin:$PATH"
@@ -137,7 +137,7 @@ $GCC_SRC_DIR/configure \
         --with-gxx-include-dir=$_TMP_DIR/newer-toolchain/include/c++/$GCC_VERSION
 
 make -j $_MAKE_PROCESSES
-make -j $_MAKE_PROCESSES install
+make -j $_MAKE_PROCESSES install-strip
 
 popd # newer-toolchain-build
 
