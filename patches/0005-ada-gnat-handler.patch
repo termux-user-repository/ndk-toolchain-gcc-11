@@ -1,0 +1,13 @@
+This hanlder is only for arm (32-bit), so disable it on other archs.
+
+--- a/gcc/ada/init.c
++++ b/gcc/ada/init.c
+@@ -2631,7 +2631,7 @@
+   __gnat_handler_installed = 1;
+ }
+ 
+-#elif defined(__ANDROID__)
++#elif defined(__ANDROID__) && defined(__arm__)
+ 
+ /*******************/
+ /* Android Section */

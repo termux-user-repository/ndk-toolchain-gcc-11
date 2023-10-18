@@ -57,7 +57,7 @@ fi
 
 # Install dependencies
 sudo apt update
-sudo apt install -y build-essential curl
+sudo apt install -y build-essential curl gnat-11
 sudo apt install -y libgmp-dev libmpfr-dev libmpc-dev zlib1g-dev libisl-dev libtinfo5 libncurses5
 
 pushd $_TMP_DIR
@@ -130,7 +130,7 @@ $GCC_SRC_DIR/configure \
         --enable-libatomic-ifuncs=no \
         --prefix=$_TMP_DIR/newer-toolchain \
         --with-gmp --with-mpfr --with-mpc --with-system-zlib \
-        --enable-languages=c,c++,fortran \
+        --enable-languages=c,c++,fortran,ada \
         --enable-plugins --enable-libgomp \
         --enable-gnu-indirect-function \
         --disable-libcilkrts --disable-libsanitizer \
