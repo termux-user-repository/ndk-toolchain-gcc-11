@@ -1,4 +1,4 @@
-This hanlder is only for arm (32-bit), so disable it on other archs.
+This hanlder is only for arm (32-bit), so disable it anyway.
 
 --- a/gcc/ada/init.c
 +++ b/gcc/ada/init.c
@@ -7,7 +7,7 @@ This hanlder is only for arm (32-bit), so disable it on other archs.
  }
  
 -#elif defined(__ANDROID__)
-+#elif defined(__ANDROID__) && defined(__arm__)
++#elif 0
  
  /*******************/
  /* Android Section */
